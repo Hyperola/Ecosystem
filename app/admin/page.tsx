@@ -1,5 +1,5 @@
 // app/admin/page.tsx
-import prisma from "@/lib/prisma"; // Adjust based on your prisma client path
+import { prisma } from "@/lib/prisma"; // Adjust based on your prisma client path
 
 export default async function AdminDashboard() {
   // Fetch counts for all categories
