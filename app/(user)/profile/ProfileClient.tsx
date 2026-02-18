@@ -17,9 +17,10 @@ interface ExtendedBusiness extends Business {
   };
 }
 
+// FIX: Removed the '?' from bio and whatsapp to match Prisma's 'string | null' exactly
 interface ExtendedUser extends User {
-  bio?: string | null;
-  whatsapp?: string | null;
+  bio: string | null;
+  whatsapp: string | null;
   products: Product[];
   businesses: ExtendedBusiness[];
 }
@@ -155,12 +156,12 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
       </div>
 
       {/* --- HERO HEADER --- */}
-      <div className="h-48 md:h-64 bg-[#3A4118] relative overflow-hidden">
+      <div className="h-48 md:h-64 bg-[#3A4118] relative overflow-hidden text-left">
         <div className="absolute inset-0 opacity-10 flex items-center justify-center pointer-events-none">
-           <div className="text-[18vw] md:text-[15vw] font-black text-white italic tracking-tighter uppercase select-none leading-none">SYNTRA</div>
+            <div className="text-[18vw] md:text-[15vw] font-black text-white italic tracking-tighter uppercase select-none leading-none">SYNTRA</div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 md:px-8 h-full flex items-end pb-8 md:pb-12 relative z-10 text-left">
+        <div className="max-w-7xl mx-auto px-6 md:px-8 h-full flex items-end pb-8 md:pb-12 relative z-10">
           <div className="flex flex-col md:flex-row items-center md:items-end gap-4 md:gap-8 w-full">
             <div className="relative group">
               <div className="w-28 h-28 md:w-40 md:h-40 rounded-[2rem] md:rounded-[3rem] bg-white border-[4px] md:border-[8px] border-[#FCFCFA] overflow-hidden shadow-2xl relative">
@@ -184,7 +185,7 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
             </div>
 
             <div className="flex-grow mb-2 md:mb-4">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 justify-center md:justify-start">
                 <h1 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tighter italic leading-none">
                   {user?.name?.split(' ')[0] || "PLUG"}
                 </h1>
@@ -194,11 +195,11 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
                   </div>
                 )}
               </div>
-              <p className="text-[10px] md:text-[11px] font-black text-white/70 uppercase tracking-[0.2em] mb-4 max-w-xs md:max-w-md mx-0">
+              <p className="text-[10px] md:text-[11px] font-black text-white/70 uppercase tracking-[0.2em] mb-4 max-w-xs md:max-w-md mx-auto md:mx-0 text-center md:text-left">
                 {user?.bio || "No bio set... ⚡️"}
               </p>
               
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 justify-center md:justify-start">
                 {AVATAR_STYLES.map((style) => (
                   <button key={style} onClick={() => pickAvatarStyle(style)} className="w-6 h-6 md:w-7 md:h-7 rounded-lg bg-white/10 hover:bg-white/20 transition-all overflow-hidden border border-white/10">
                     <img src={`https://api.dicebear.com/7.x/${style}/svg?seed=${style}`} alt="style" />
@@ -255,8 +256,13 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
             {paginatedProducts.length > 0 ? (
               paginatedProducts.map((p) => (
                 <div key={p.id} className={`bg-white border border-slate-100 p-3 rounded-[1.8rem] flex flex-col gap-3 transition-all group relative ${p.isSold ? 'opacity-70' : 'hover:border-[#3A4118]'}`}>
-                  <div className="aspect-square rounded-[1.3rem] overflow-hidden bg-slate-100 relative">
-                     <img src={p.images[0]} className={`w-full h-full object-cover transition-transform duration-700 ${!p.isSold && 'group-hover:scale-105'}`} alt={p.title} />
+                  <div className="aspect-square rounded-[1.3rem] overflow-hidden bg-slate-100 relative shadow-inner">
+                     {/* FIX: Using images[0] and p.title */}
+                     <img 
+                        src={p.images[0] || "/placeholder.jpg"} 
+                        className={`w-full h-full object-cover transition-transform duration-700 ${!p.isSold && 'group-hover:scale-105'}`} 
+                        alt={p.title} 
+                      />
                      
                      {p.isSold && (
                        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center">
@@ -264,13 +270,14 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
                        </div>
                      )}
 
-                     <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-lg text-[8px] font-black uppercase">
+                     <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-lg text-[8px] font-black uppercase shadow-sm">
                        ₦{p.price.toLocaleString()}
                      </div>
                   </div>
                   
                   <div className="flex flex-col gap-2 px-1 text-left">
                     <div>
+                      {/* FIX: Using p.title */}
                       <p className={`font-black uppercase text-[10px] tracking-tight truncate ${p.isSold ? 'text-slate-400' : 'text-[#3A4118]'}`}>{p.title}</p>
                       <p className="text-[7px] font-black text-[#A3B18A] uppercase tracking-tighter">{p.category}</p>
                     </div>
@@ -304,7 +311,6 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
 
         {/* --- RIGHT: BENTO STATUS --- */}
         <div className="lg:col-span-4 space-y-4 md:space-y-6 text-left">
-          
           {/* XP Card */}
           <div className="bg-black rounded-[2rem] md:rounded-[3rem] p-6 md:p-8 text-white relative overflow-hidden group shadow-xl">
             <Flame className="absolute -right-4 -bottom-4 w-24 h-24 text-[#A3B18A] opacity-20" />
@@ -346,8 +352,8 @@ export default function ProfileClient({ user: initialUser }: ProfileClientProps)
                {user?.businesses && user.businesses.length > 0 ? (
                  user.businesses.map(biz => (
                    <div key={biz.id} className="bg-white p-4 rounded-2xl flex items-center gap-4 border border-slate-100 group hover:border-[#3A4118] transition-all">
-                      <div className="w-10 h-10 bg-slate-50 rounded-xl overflow-hidden border border-slate-100">
-                        {biz.logo ? <img src={biz.logo} className="w-full h-full object-cover" /> : <Store className="w-full h-full p-2 text-slate-200" />}
+                      <div className="w-10 h-10 bg-slate-50 rounded-xl overflow-hidden border border-slate-100 shadow-inner">
+                        {biz.logo ? <img src={biz.logo} className="w-full h-full object-cover" alt="" /> : <Store className="w-full h-full p-2 text-slate-200" />}
                       </div>
                       <div className="flex-1">
                         <p className="text-[10px] font-black text-[#3A4118] uppercase truncate">{biz.name}</p>
