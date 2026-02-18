@@ -5,25 +5,28 @@ export async function POST(
   req: NextRequest, 
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // Await params to get the id
-  const { id } = await params;
-
   try {
-    // Update VerificationRequest status
-    const request = await prisma.verificationRequest.update({
-      where: { id },
-      data: { status: "REJECTED" },
-    });
+    const { id } = await params;
 
-    // Update user's verification status
-    if (request) {
-      await prisma.user.update({
+    if (!id) {
+      return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const request = await tx.verificationRequest.update({
+        where: { id },
+        data: { status: "REJECTED" },
+      });
+
+      const user = await tx.user.update({
         where: { id: request.userId },
         data: { verificationStatus: "REJECTED" },
       });
-    }
 
-    return NextResponse.json({ message: "User rejected successfully" });
+      return { request, user };
+    });
+
+    return NextResponse.json({ message: "User rejected successfully", result });
   } catch (error) {
     console.error("Reject Error:", error);
     return NextResponse.json({ error: "Failed to reject user" }, { status: 500 });
