@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma"; // Updated to named import
+import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth-options";
 import { redirect } from "next/navigation";
@@ -11,12 +11,12 @@ import {
 export default async function BusinessDashboard({ 
   params 
 }: { 
-  params: Promise<{ id: string }> // Updated to Promise for Next.js 15/16
+  params: Promise<{ id: string }> 
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  // Await the params before using them
+  // 1. Await the params to satisfy Next.js 15/16 requirements
   const { id } = await params;
 
   const biz = await prisma.business.findFirst({
@@ -34,7 +34,7 @@ export default async function BusinessDashboard({
 
   return (
     <div className="min-h-screen bg-[#FCFCFA] text-[#1A1A1A] font-sans pb-20">
-      {/* TOP NAV - Redesigned for Premium feel */}
+      {/* TOP NAV */}
       <nav className="px-6 py-4 flex justify-between items-center border-b border-slate-100 bg-white/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-black border border-white/10 flex items-center justify-center overflow-hidden shadow-xl">
@@ -77,8 +77,8 @@ export default async function BusinessDashboard({
               <Users className="w-5 h-5 text-[#A3B18A]" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Verification</p>
-              <h3 className="text-2xl font-black uppercase italic mt-1 tracking-tighter text-[#3A4118]">Verified Entity</h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">Verification Status</p>
+              <h3 className="text-2xl font-black uppercase italic mt-1 tracking-tighter text-[#3A4118]">Active Entity</h3>
             </div>
           </div>
 
@@ -98,7 +98,7 @@ export default async function BusinessDashboard({
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <h3 className="text-4xl font-black uppercase italic tracking-tighter text-[#3A4118]">The Inventory</h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Total items in your digital showroom</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Manage your active goods</p>
             </div>
           </div>
 
@@ -106,14 +106,19 @@ export default async function BusinessDashboard({
             {biz.products.map((product) => (
               <div key={product.id} className="group bg-white rounded-[2.2rem] p-3 border border-slate-100 hover:shadow-2xl hover:-translate-y-1 transition-all duration-500">
                 <div className="aspect-[4/5] rounded-[1.8rem] bg-slate-50 mb-4 overflow-hidden relative shadow-inner">
-                  <img src={product.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={product.name} />
+                  {/* 2. FIXED: Accessing images array and using product.title */}
+                  <img 
+                    src={product.images[0] || "/placeholder.jpg"} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                    alt={product.title} 
+                  />
                   <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-[9px] font-black text-[#3A4118] shadow-sm">
                     ₦{product.price.toLocaleString()}
                   </div>
                 </div>
                 
                 <div className="px-2 pb-2">
-                  <h4 className="text-[11px] font-black uppercase truncate tracking-tight">{product.name}</h4>
+                  <h4 className="text-[11px] font-black uppercase truncate tracking-tight">{product.title}</h4>
                   <div className="flex justify-between items-center mt-4">
                     <button className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-red-400 hover:text-red-600 transition-colors">
                       <Trash2 className="w-3 h-3" />
