@@ -10,12 +10,10 @@ import {
   LogOut, 
   Menu, 
   X, 
-  Bell,
   ShoppingBag,
   Zap,
   GraduationCap,
   Sparkles,
-  Search,
   MapPin,
   Briefcase
 } from "lucide-react";
@@ -38,33 +36,38 @@ export default function NavBar() {
     return <div className="h-20 bg-[#FCFCFA] border-b border-[#3A4118]/10 sticky top-0 z-50" />;
   }
 
-  // ALL 4 PILLARS + ADMIN HQ
+  /**
+   * NAVIGATION LOGIC
+   * 1. Guests: Only see HOME.
+   * 2. Members: See the 4 Pillars.
+   * 3. Verified: See Dashboard.
+   * 4. Admin: See HQ.
+   */
   const navItems = [
     { href: "/", label: "HOME", icon: Home, show: true },
     { 
       href: "/marketplace", 
       label: "THE PLUG", 
       icon: ShoppingBag, 
-      show: true,
-      badge: !session?.user ? "OPEN" : null
+      show: !!session?.user // Show only if logged in
     },
     { 
       href: "/crib", 
       label: "THE CRIB", 
       icon: MapPin, 
-      show: true 
+      show: !!session?.user 
     },
     { 
       href: "/sidequest", 
       label: "SIDE QUEST", 
       icon: Briefcase, 
-      show: true 
+      show: !!session?.user 
     },
     { 
       href: "/founders", 
       label: "FOUNDERS", 
       icon: Sparkles, 
-      show: true 
+      show: !!session?.user 
     },
     { 
       href: "/dashboard", 
@@ -133,7 +136,11 @@ export default function NavBar() {
                   </div>
                   <div className="hidden md:flex flex-col">
                     <span className="text-[10px] font-black uppercase text-[#3A4118] tracking-tight">{session.user.name?.split(' ')[0]}</span>
-                    <span className="text-[8px] font-bold text-[#A3B18A] tracking-widest uppercase">
+                    <span className={`text-[8px] font-bold tracking-widest uppercase ${
+                      session.user.verificationStatus === "APPROVED" 
+                        ? "text-[#A3B18A]" 
+                        : "text-amber-600 animate-pulse"
+                    }`}>
                        {session.user.verificationStatus === "APPROVED" ? "Verified ✓" : "Locked 🔒"}
                     </span>
                   </div>

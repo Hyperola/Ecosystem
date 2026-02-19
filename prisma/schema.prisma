@@ -10,11 +10,12 @@ datasource db {
 // --- AUTH & USER MODELS ---
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?   // User's profile picture URL
+  id             String    @id @default(cuid())
+  name           String?
+  email          String?   @unique
+  emailVerified  DateTime?
+  hashedPassword String?   // NEW: For Email/Password Login
+  image          String?   
   
   bio                String?            @db.Text
   role               Role               @default(USER)
@@ -33,12 +34,27 @@ model User {
   properties           Property[]   
   jobs                 Job[]        
   businesses           Business[]   
+  otpCodes             OtpCode[]    // NEW: Relation to verification codes
   
   reviewsWritten       Review[]     @relation("Reviewer") 
   reviewsReceived      Review[]     @relation("ProductOwner") 
 
   @@index([whatsapp])
 }
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  code      String   // The 6-digit code
+  email     String   // Who the code belongs to
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+}
+
+// --- NEXT-AUTH REQUIRED MODELS ---
 
 model Account {
   id                String  @id @default(cuid())
@@ -74,6 +90,8 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// --- BUSINESS LOGIC MODELS ---
+
 model VerificationRequest {
   id            String             @id @default(cuid())
   userId        String
@@ -94,10 +112,8 @@ model VerificationRequest {
   @@index([status])
 }
 
-// --- THE PLUG (Marketplace) ---
-
 model Product {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   title          String
   description    String
   price          Float
@@ -111,7 +127,6 @@ model Product {
   sellerId       String
   seller         User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   
-  // Link to Business Page
   businessId     String?
   business       Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
   
@@ -124,8 +139,6 @@ model Product {
   @@index([businessId])
   @@index([category])
 }
-
-// --- THE CRIB (Housing) ---
 
 model Property {
   id             String   @id @default(cuid())
@@ -152,8 +165,6 @@ model Property {
   @@index([agentId])
 }
 
-// --- SIDE QUEST (Jobs) ---
-
 model Job {
   id             String   @id @default(cuid())
   title          String
@@ -171,8 +182,6 @@ model Job {
   @@index([posterId])
 }
 
-// --- FOUNDER'S HOME (Businesses/Pages) ---
-
 model Business {
   id             String   @id @default(cuid())
   name           String   
@@ -187,7 +196,7 @@ model Business {
   ownerId        String
   owner          User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   
-  products       Product[] // Items posted specifically by this brand
+  products       Product[] 
   
   isFeatured     Boolean  @default(false)
   createdAt      DateTime @default(now())
@@ -195,8 +204,6 @@ model Business {
 
   @@index([ownerId])
 }
-
-// --- REVIEWS ---
 
 model Review {
   id          String   @id @default(cuid())
