@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 // Import the type we just created
-import { VerificationRequest } from "@/types";
+import type { VerificationRequest } from "@/types";
+
 
 interface VerificationCardProps {
   request: VerificationRequest;

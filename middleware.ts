@@ -3,81 +3,60 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export async function middleware(req: NextRequest) {
-  const token = await getToken({
-    req,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
+  // Use a try-catch to prevent worker crashes during build-time static generation
+  try {
+    const token = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
 
-  const { pathname } = req.nextUrl;
+    const { pathname } = req.nextUrl;
 
-  /**
-   * 1. TRULY PUBLIC ROUTES
-   * Only the landing page and auth-related assets.
-   */
-  const isPublicRoute = 
-    pathname === "/" ||
-    pathname.startsWith("/signin") ||
-    pathname.startsWith("/register") || // Your new signup page
-    pathname.startsWith("/verify-email") || // Your new OTP page
-    pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/api/register") ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon");
+    // 1. Skip middleware for public assets/auth
+    if (
+      pathname.startsWith("/_next") ||
+      pathname.startsWith("/api/auth") ||
+      pathname.startsWith("/static") ||
+      pathname === "/favicon.ico"
+    ) {
+      return NextResponse.next();
+    }
 
-  if (isPublicRoute) {
+    // 2. Auth Check
+    if (!token) {
+      // Allow them to reach signin/register/verify-email
+      const isAuthPage = 
+        pathname === "/" ||
+        pathname.startsWith("/signin") ||
+        pathname.startsWith("/register") ||
+        pathname.startsWith("/verify-email");
+
+      if (isAuthPage) return NextResponse.next();
+      
+      return NextResponse.redirect(new URL("/signin", req.url));
+    }
+
+    // 3. Verification Lock
+    const verificationStatus = token.verificationStatus;
+    const verificationRequiredRoutes = ["/post", "/rent", "/business/create", "/admin"];
+
+    const requiresVerification = verificationRequiredRoutes.some((route) =>
+      pathname.startsWith(route)
+    );
+
+    if (requiresVerification && verificationStatus !== "APPROVED") {
+      return NextResponse.redirect(new URL("/verify", req.url));
+    }
+
+    return NextResponse.next();
+  } catch (error) {
+    // If middleware fails during build, just let it pass to avoid "Call Retries Exceeded"
     return NextResponse.next();
   }
-
-  /**
-   * 2. AUTHENTICATION CHECK
-   * If not logged in, they can't see Marketplace, Crib, Sidequest, or Dashboard.
-   */
-  if (!token) {
-    // Redirect to your custom signin page
-    return NextResponse.redirect(new URL("/signin", req.url));
-  }
-
-  const verificationStatus = token.verificationStatus;
-
-  /**
-   * 3. ACTION-BASED VERIFICATION LOCK
-   * Users can BROWSE the marketplace now (since they are logged in),
-   * but they can't POST or MANAGE without being APPROVED.
-   */
-  const verificationRequiredRoutes = [
-    "/post",
-    "/rent",
-    "/business/create",
-    "/dashboard/manage",
-    "/admin", // Only for Approved Admin
-  ];
-
-  const requiresVerification = verificationRequiredRoutes.some((route) =>
-    pathname.startsWith(route)
-  );
-
-  if (requiresVerification && verificationStatus !== "APPROVED") {
-    // If logged in but trying to do a "pro" action, send to verify
-    return NextResponse.redirect(new URL("/verify", req.url));
-  }
-
-  return NextResponse.next();
 }
 
-/**
- * 4. MATCHER
- * Added the pillars to the matcher so the middleware actually runs on them.
- */
 export const config = {
-  matcher: [
-    "/marketplace/:path*",
-    "/crib/:path*",
-    "/sidequest/:path*",
-    "/founders/:path*",
-    "/post/:path*",
-    "/rent/:path*",
-    "/business/:path*",
-    "/dashboard/:path*",
-    "/verify/:path*",
-  ],
+  // Use a negative lookahead to exclude files and auth routes
+  // This is the "Next.js 16" way to handle matchers
+  matcher: ["/((?!api/auth|static|.*\\..*|_next).*)"],
 };

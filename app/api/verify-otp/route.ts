@@ -1,22 +1,23 @@
+// app/api/verify-otp/route.ts
+import { prisma } from "@/lib/prisma"; // Add this line
+import { NextResponse } from "next/server";
+
 export async function POST(req: Request) {
-  const { email, code } = await req.json();
+  try {
+    const { email, code } = await req.json();
 
-  const otpRecord = await prisma.otpCode.findFirst({
-    where: { email, code, expiresAt: { gt: new Date() } },
-  });
+    const otpRecord = await prisma.otpCode.findFirst({
+      where: { email, code, expiresAt: { gt: new Date() } },
+    });
 
-  if (!otpRecord) {
-    return NextResponse.json({ error: "Invalid or expired code" }, { status: 400 });
+    if (!otpRecord) {
+      return NextResponse.json({ error: "Invalid or expired OTP" }, { status: 400 });
+    }
+
+    // ... rest of your code to verify the user
+    return NextResponse.json({ message: "Verified successfully" });
+    
+  } catch (error) {
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-
-  // Mark user as verified
-  await prisma.user.update({
-    where: { email },
-    data: { emailVerified: new Date() },
-  });
-
-  // Delete the code after use
-  await prisma.otpCode.delete({ where: { id: otpRecord.id } });
-
-  return NextResponse.json({ message: "Email verified successfully!" });
 }

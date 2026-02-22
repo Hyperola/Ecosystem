@@ -1,23 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Add this to tell Next.js 16 to be quiet about Turbopack
+  turbopack: {}, 
+
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'res.cloudinary.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'utfs.io', // This is for UploadThing
-      },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'res.cloudinary.com' },
+      { protocol: 'https', hostname: 'utfs.io' },
     ],
   },
-  // If you still get the 'fs' error with Turbopack, keep this:
+  
+  // Keep this to handle the bcryptjs/fs issue
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
