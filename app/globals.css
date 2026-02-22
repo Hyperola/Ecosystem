@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  /* SYNTRA Brand Evolution */
+  --color-army-green: #3A4118;
+  --color-tactical-sage: #A3B18A;
+  --color-bone-white: #F4F4F2;
+  --color-dark-olive: #282D10;
+  
+  --color-sky-blue: #0ea5e9;
+  --color-soft-violet: #8b5cf6;
+  --color-deep-charcoal: #0f172a;
+  --color-success-green: #10b981;
+  --color-error-red: #ef4444;
+  
+  /* Animations */
+  --animate-gradient-slow: gradient-move 8s ease infinite;
+  --animate-spin-slow: spin 12s linear infinite;
+
+  @keyframes gradient-move {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+}
+
+/* Custom Base Styles */
+:root {
+  background-color: #F4F4F2;
+  color: #1a1a1a;
+}
+
+/* Custom Utilities */
+@utility btn-tactical {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--color-army-green);
+  color: var(--color-bone-white);
+  border-radius: 9999px;
+  padding: 1rem 2rem;
+  font-weight: 900;
+  transition: all 0.2s;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+
+  /* Hover and Active states handled via standard CSS nesting */
+  &:hover {
+    background-color: var(--color-dark-olive);
+  }
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility stroke-text {
+  -webkit-text-stroke: 1.5px #3A4118;
+  color: transparent;
+}
