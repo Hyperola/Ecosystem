@@ -8,9 +8,8 @@ import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
-  // Switch to JWT strategy to support Credentials + Social login together
   session: {
-    strategy: "jwt", 
+    strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   providers: [
@@ -19,7 +18,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          prompt: "select_account", // FIX: Forces Google to ask "Who is signing in?"
+          prompt: "select_account",
           access_type: "offline",
           response_type: "code",
         },
@@ -40,7 +39,6 @@ export const authOptions: NextAuthOptions = {
           where: { email: credentials.email },
         });
 
-        // Check if user exists and has a password (they might have signed up with Google only)
         if (!user || !user.hashedPassword) {
           throw new Error("No user found with this email. Please sign up.");
         }
@@ -54,34 +52,33 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid password");
         }
 
-        // Return user object for the JWT
+        // Return user object - TypeScript now knows these fields exist
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: (user as any).role,
-          verificationStatus: (user as any).verificationStatus,
-          whatsapp: (user as any).whatsapp,
+          role: user.role,
+          verificationStatus: user.verificationStatus,
+          whatsapp: user.whatsapp,
         };
       },
     }),
   ],
   pages: {
     signIn: "/signin",
-    // newUser: "/verify", // You can redirect first-time users here
   },
   callbacks: {
     async jwt({ token, user, trigger, session }) {
       // Pass database fields into the JWT token
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role;
-        token.verificationStatus = (user as any).verificationStatus;
-        token.whatsapp = (user as any).whatsapp;
+        token.role = user.role;
+        token.verificationStatus = user.verificationStatus;
+        token.whatsapp = user.whatsapp;
       }
       
-      // Allows manual session updates if you change user data
-      if (trigger === "update" && session) {
+      // Handle manual session updates (e.g., after verification)
+      if (trigger === "update" && session?.user) {
         return { ...token, ...session.user };
       }
       
@@ -90,10 +87,10 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       // Pass JWT data into the client-side session
       if (token && session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.verificationStatus = token.verificationStatus as string;
-        session.user.whatsapp = token.whatsapp as string;
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.verificationStatus = token.verificationStatus;
+        session.user.whatsapp = token.whatsapp;
       }
       return session;
     },

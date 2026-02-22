@@ -1,117 +1,102 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { getAuthSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
+import { useState } from "react";
+// Import the type we just created
+import { VerificationRequest } from "@/types";
 
-interface VerificationRequest {
-  id: string;
-  userId: string;
-  fullName: string;
-  institution: string;
-  matricOrNysc: string;
-  whatsapp: string;
-  idImageUrl: string;
-  status: string;
-  user: {
-    name: string | null;
-    email: string | null;
-  };
+interface VerificationCardProps {
+  request: VerificationRequest;
 }
 
-export default async function AdminVerificationPage() {
-  const session = await getAuthSession();
-
-  // Only allow admin
-  if (!session?.user) redirect("/signin");
-  if (session.user.role !== "ADMIN") redirect("/");
-
-  // Fetch pending requests server-side
-  const pendingRequests = await prisma.verificationRequest.findMany({
-    where: { status: "PENDING" },
-    include: { user: true },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return (
-    <div className="max-w-6xl mx-auto mt-10">
-      <h1 className="text-3xl font-bold mb-6">Pending Verification Requests</h1>
-
-      {pendingRequests.length === 0 ? (
-        <p className="text-gray-600">No pending requests right now.</p>
-      ) : (
-        <div className="space-y-6">
-          {pendingRequests.map(request => (
-            <VerificationCard key={request.id} request={request} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function VerificationCard({ request }: { request: VerificationRequest }) {
+export default function VerificationCard({ request }: VerificationCardProps) {
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState(request.status);
+  const [status, setStatus] = useState<string>(request.status);
   const [rejectionNote, setRejectionNote] = useState("");
 
   const handleApprove = async () => {
     setLoading(true);
-    const res = await fetch(`/admin/verify/${request.id}/approve`, { method: "POST" });
-    if (res.ok) setStatus("APPROVED");
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/admin/verify/${request.id}/approve`, { 
+        method: "POST" 
+      });
+      if (res.ok) setStatus("APPROVED");
+    } catch (error) {
+      console.error("Approval failed", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleReject = async () => {
     if (!rejectionNote.trim()) return alert("Please enter a rejection note");
+    
     setLoading(true);
-    const res = await fetch(`/admin/verify/${request.id}/reject`, {
-      method: "POST",
-      body: JSON.stringify({ rejectionNote }),
-      headers: { "Content-Type": "application/json" },
-    });
-    if (res.ok) setStatus("REJECTED");
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/admin/verify/${request.id}/reject`, {
+        method: "POST",
+        body: JSON.stringify({ rejectionNote }),
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) setStatus("REJECTED");
+    } catch (error) {
+      console.error("Rejection failed", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // If the status is no longer PENDING, we hide the card from the list
   if (status !== "PENDING") return null;
 
   return (
-    <div className="border p-4 rounded shadow-sm">
-      <p><strong>User:</strong> {request.user.name} ({request.user.email})</p>
-      <p><strong>Full Name:</strong> {request.fullName}</p>
-      <p><strong>Institution:</strong> {request.institution}</p>
-      <p><strong>Matric/NYSC:</strong> {request.matricOrNysc}</p>
-      <p><strong>WhatsApp:</strong> {request.whatsapp}</p>
-      <p>
-        <strong>ID Image:</strong>{" "}
-        <a href={request.idImageUrl} target="_blank" className="text-blue-600 underline">View Image</a>
-      </p>
+    <div className="border-2 border-[#3A4118]/5 p-6 rounded-3xl bg-white shadow-sm transition-all hover:shadow-md">
+      <div className="space-y-2 mb-4">
+        <p className="text-xs font-black text-[#A3B18A] tracking-widest uppercase">User Info</p>
+        <p className="font-bold text-[#3A4118]">
+          {request.user.name} 
+          <span className="text-gray-400 font-normal ml-2">({request.user.email})</span>
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-sm text-slate-600">
+          <p><span className="font-bold text-[#3A4118]">Full Name:</span> {request.fullName}</p>
+          <p><span className="font-bold text-[#3A4118]">Institution:</span> {request.institution}</p>
+          <p><span className="font-bold text-[#3A4118]">Matric/NYSC:</span> {request.matricOrNysc}</p>
+          <p><span className="font-bold text-[#3A4118]">WhatsApp:</span> {request.whatsapp}</p>
+        </div>
+      </div>
+      
+      <a 
+        href={request.idImageUrl} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="inline-block mt-2 bg-slate-100 px-4 py-2 rounded-xl text-xs font-bold text-[#3A4118] hover:bg-slate-200 transition-colors"
+      >
+        View ID Image ↗
+      </a>
 
-      <div className="mt-4 flex flex-col md:flex-row gap-3">
+      <div className="mt-6 flex flex-wrap items-center gap-4 border-t border-slate-50 pt-6">
         <button
           onClick={handleApprove}
           disabled={loading}
-          className="bg-green-600 text-white py-1 px-3 rounded"
+          className="bg-[#3A4118] text-white py-3 px-6 rounded-2xl font-black text-[10px] tracking-widest uppercase disabled:opacity-50 hover:opacity-90 transition-all shadow-lg shadow-[#3A4118]/10"
         >
-          {loading ? "Processing..." : "Approve"}
+          {loading ? "Processing..." : "Approve ✓"}
         </button>
 
-        <div className="flex gap-2">
+        <div className="flex-1 flex gap-2">
           <input
             type="text"
-            placeholder="Rejection note"
+            placeholder="Reason for rejection..."
             value={rejectionNote}
             onChange={e => setRejectionNote(e.target.value)}
-            className="border px-2 rounded"
+            className="flex-1 border-2 border-slate-100 px-4 py-3 rounded-2xl text-sm focus:border-red-200 outline-none transition-all"
           />
           <button
             onClick={handleReject}
             disabled={loading}
-            className="bg-red-600 text-white py-1 px-3 rounded"
+            className="bg-red-50 text-red-600 border border-red-100 py-3 px-6 rounded-2xl font-black text-[10px] tracking-widest uppercase hover:bg-red-100 transition-colors disabled:opacity-50"
           >
-            {loading ? "Processing..." : "Reject"}
+            Reject
           </button>
         </div>
       </div>
