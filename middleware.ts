@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export async function middleware(req: NextRequest) {
-  // Use a try-catch to prevent worker crashes during build-time static generation
   try {
     const token = await getToken({
       req,
@@ -12,51 +11,56 @@ export async function middleware(req: NextRequest) {
 
     const { pathname } = req.nextUrl;
 
-    // 1. Skip middleware for public assets/auth
-    if (
-      pathname.startsWith("/_next") ||
+    // 1. PUBLIC ROUTES (Anyone can see these)
+    const isPublicRoute = 
+      pathname === "/" || 
       pathname.startsWith("/api/auth") ||
-      pathname.startsWith("/static") ||
-      pathname === "/favicon.ico"
-    ) {
+      pathname.startsWith("/register") ||
+      pathname.startsWith("/verify-email") ||
+      pathname.startsWith("/marketplace") || // Allow browsing marketplace
+      pathname.startsWith("/explore");
+
+    // 2. AUTH PAGE CHECK (Signin)
+    if (pathname === "/signin") {
+      if (token) {
+        // If already logged in, send them to dashboard
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
       return NextResponse.next();
     }
 
-    // 2. Auth Check
-    if (!token) {
-      // Allow them to reach signin/register/verify-email
-      const isAuthPage = 
-        pathname === "/" ||
-        pathname.startsWith("/signin") ||
-        pathname.startsWith("/register") ||
-        pathname.startsWith("/verify-email");
-
-      if (isAuthPage) return NextResponse.next();
-      
-      return NextResponse.redirect(new URL("/signin", req.url));
+    // 3. PROTECT PRIVATE ROUTES
+    if (!token && !isPublicRoute) {
+      // If not logged in and trying to access a private route, send to signin
+      const signInUrl = new URL("/signin", req.url);
+      signInUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(signInUrl);
     }
 
-    // 3. Verification Lock
-    const verificationStatus = token.verificationStatus;
-    const verificationRequiredRoutes = ["/post", "/rent", "/business/create", "/admin"];
+    // 4. VERIFICATION LOCK (Strictly for specific actions)
+    if (token) {
+      const verificationStatus = token.verificationStatus;
+      
+      // Routes that require an APPROVED status
+      const restrictedRoutes = ["/admin", "/founders/create", "/marketplace/create", "/agent/upload"];
+      
+      const isTryingToAccessRestricted = restrictedRoutes.some((route) =>
+        pathname.startsWith(route)
+      );
 
-    const requiresVerification = verificationRequiredRoutes.some((route) =>
-      pathname.startsWith(route)
-    );
-
-    if (requiresVerification && verificationStatus !== "APPROVED") {
-      return NextResponse.redirect(new URL("/verify", req.url));
+      if (isTryingToAccessRestricted && verificationStatus !== "APPROVED") {
+        return NextResponse.redirect(new URL("/verify", req.url));
+      }
     }
 
     return NextResponse.next();
   } catch (error) {
-    // If middleware fails during build, just let it pass to avoid "Call Retries Exceeded"
+    // Fail safe for build-time generation
     return NextResponse.next();
   }
 }
 
 export const config = {
-  // Use a negative lookahead to exclude files and auth routes
-  // This is the "Next.js 16" way to handle matchers
-  matcher: ["/((?!api/auth|static|.*\\..*|_next).*)"],
+  // Matches all routes except api, static files, and internal Next.js files
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\.).*)"],
 };

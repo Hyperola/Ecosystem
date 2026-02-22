@@ -66,6 +66,7 @@ export const authOptions: NextAuthOptions = {
   ],
   pages: {
     signIn: "/signin",
+    error: "/signin", // Redirect to signin on error
   },
   callbacks: {
     async jwt({ token, user, trigger, session }) {
@@ -87,15 +88,25 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       // Pass JWT data into the client-side session
       if (token && session.user) {
-        session.user.id = token.id;
+        session.user.id = token.id as string;
         session.user.role = token.role;
         session.user.verificationStatus = token.verificationStatus;
         session.user.whatsapp = token.whatsapp;
       }
       return session;
     },
-    async redirect({ baseUrl }) {
+    async redirect({ url, baseUrl }) {
+      // If the url is exactly the sign-in page or contains an error, send to dashboard/home
+      if (url.includes("/signin")) return `${baseUrl}/dashboard`;
+      
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url;
+      
       return `${baseUrl}/dashboard`;
     },
   },
+  secret: process.env.NEXTAUTH_SECRET,
 };
